@@ -19,4 +19,5 @@ multibody configs:
   - "ADF/stereo_cameras.yaml" #5
   - "ADF/single_stereo_camera.yaml" #6
   - "ADF/gaze_marker.yaml" #7
-  - '/home/nimesh/volumetric_drilling_VRE/ADF/marker.yaml' #8
+  - '/home/amunawa2/volumetric_drilling_VRE/ADF/marker.yaml' #8
+  - '/home/amunawa2/volumetric_drilling_VRE/ADF/marker_checkerboard.yaml' #9
