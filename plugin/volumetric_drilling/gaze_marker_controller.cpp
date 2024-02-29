@@ -67,19 +67,21 @@ int GazeMarkerController::init(afWorldPtr a_worldPtr, CameraPanelManager* a_pane
     m_time = m_textShowDuration;
 
     m_posIdx = 10;
-    m_posDur = 2.0;
+    m_posDur = 7.0;
     m_posStartTime = 0.;
 
-    m_gridWidth = 0.40;
-    m_gridHeight = 0.40;
+    m_gridWidth = 0.25;
+    m_gridHeight = 0.25;
     m_gridCenter = 0.0;
+    m_cornerOffset = 0.05;
+
 
     m_P_m_c_list = {
         cVector3d(-5.,  m_gridCenter, m_gridCenter),
-        cVector3d(-5., -m_gridWidth,  m_gridHeight),
-        cVector3d(-5.,  m_gridWidth, -m_gridHeight),
-        cVector3d(-5.,  m_gridWidth,  m_gridHeight),
-        cVector3d(-5., -m_gridWidth, -m_gridHeight),
+        cVector3d(-5., -m_gridWidth + m_cornerOffset,  m_gridHeight - m_cornerOffset),
+        cVector3d(-5.,  m_gridWidth - m_cornerOffset, -m_gridHeight + m_cornerOffset),
+        cVector3d(-5.,  m_gridWidth - m_cornerOffset,  m_gridHeight - m_cornerOffset),
+        cVector3d(-5., -m_gridWidth + m_cornerOffset, -m_gridHeight + m_cornerOffset),
         cVector3d(-5.,  m_gridWidth,  m_gridCenter),
         cVector3d(-5., -m_gridWidth, -m_gridCenter),
         cVector3d(-5.,  m_gridCenter, m_gridHeight),
@@ -88,7 +90,7 @@ int GazeMarkerController::init(afWorldPtr a_worldPtr, CameraPanelManager* a_pane
 
     initializeLabels();
 
-    restart();
+    // restart();
 
     return 1;
 }
