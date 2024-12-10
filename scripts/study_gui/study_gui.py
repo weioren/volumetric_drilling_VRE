@@ -65,8 +65,6 @@ class Ui(QtWidgets.QWidget):
 
         self.button_stream_depth = self.findChild(QtWidgets.QPushButton, 'button_stream_depth')
 
-        self.button_video_record = self.findChild(QtWidgets.QPushButton, 'button_video_record') # for video recording the study
-
         self.button_pupil_service = self.findChild(QtWidgets.QPushButton, 'button_pupil_capture')
         self.button_pupil_service.clicked.connect(self.pressed_pupil_service)
 
@@ -115,8 +113,6 @@ class Ui(QtWidgets.QWidget):
         self._ambf_process.finished.connect(self._simulation_closed)
         self._pupil_process = QProcess()
         self._recording_process = QProcess()
-        
-        self._current_args = []
 
         self.show()
 
@@ -156,62 +152,26 @@ class Ui(QtWidgets.QWidget):
             v.setText(self.gui_configuration.params[k].get_as_str())
 
     def pressed_start_simulation(self):
+        launch_file_adf_indices = '0,7'
+        if self.button_stream_depth.isChecked():
+            launch_file_adf_indices = launch_file_adf_indices + ',4'
+        if self.button_stream_stereo.isChecked():
+            launch_file_adf_indices = launch_file_adf_indices + ',5'
+        if self.button_launch_vr.isChecked():
+            launch_file_adf_indices = launch_file_adf_indices + ',6'
+        args = ['--launch_file', str(self.gui_configuration.launch_file.get()), '-l', launch_file_adf_indices, '-a', self.active_volume_adf,
+                '--plugins', '/home/nimesh/ambf_spacenav_plugin/build/libspacenav_plugin.so',
+                "--spf", '/home/nimesh/ambf_spacenav_plugin/example/spacenav_config.yaml',
+                # "--nt", "2",
+                "--fp", str(self.gui_configuration.footpedal_device.get())]
+        print("--fp", str(self.gui_configuration.footpedal_device.get()))
+        # self.study_manager.start_simulation(args)
         if self._ambf_process.state() != QProcess.Running:
-            self._current_args = []
-            launch_file_adf_indices = '0,7'
-            if self.button_stream_depth.isChecked():
-                launch_file_adf_indices = launch_file_adf_indices + ',4'
-            if self.button_stream_stereo.isChecked():
-                launch_file_adf_indices = launch_file_adf_indices + ',5'
-            if self.button_launch_vr.isChecked():
-                launch_file_adf_indices = launch_file_adf_indices + ',6'
-            args = ['--launch_file', str(self.gui_configuration.launch_file.get()), 
-                    '-l', launch_file_adf_indices, 
-                    '-a', self.active_volume_adf,
-                    # '--plugins', '/home/nimesh/ambf_spacenav_plugin/build/libspacenav_plugin.so',
-                    # '--plugins', '/home/amunawa2/ambf_video_recording/build/libsimulator_video_recording.so', # for recording the world view
-                    "--spf", '/home/nimesh/ambf_spacenav_plugin/example/spacenav_config.yaml',
-                    # "--nt", "2",
-                    "--fp", str(self.gui_configuration.footpedal_device.get())]
-            self._current_args = args
-            if self.button_video_record.isChecked(): # for video recording pluginF
-                # if self.is_ready_to_record(): # can't check if ready to record because simulator can't be running yet
-                self.add_recording_plugin()
-            self._current_args = [item for arg in self._current_args for item in arg.split(',')]
-            print("--fp", str(self.gui_configuration.footpedal_device.get()))
-            print(f"Starting simulation with arguments: {self._current_args}")
-            # self.study_manager.start_simulation(args)
-            self._ambf_process.start(str(self.gui_configuration.ambf_executable.get()), self._current_args)
+            self._ambf_process.start(str(self.gui_configuration.ambf_executable.get()), args)
             self.button_start_simulation.setText('Close Simulation')
             self.button_start_simulation.setStyleSheet("background-color: RED")
         else:
             self._ambf_process.close()
-
-    def update_arguments(self, new_args):
-        """Update the current arguments for the process."""
-        for key, value in new_args.items():
-            if key not in self._current_args:
-                self._current_args.append(key)
-            if value is not None:
-                self._current_args.append(value)
-
-    def add_recording_plugin(self):
-        recording_plugin_path = '/home/amunawa2/ambf_video_recording/build/libsimulator_video_recording.so'
-        if '--plugins' in self._current_args:
-            plugin_index = self._current_args.index('--plugins')
-            current_plugins = self._current_args[plugin_index + 1]
-            if recording_plugin_path not in current_plugins:
-                self._current_args[plugin_index + 1] += f",{recording_plugin_path}"
-        else:
-            self._current_args.extend(['--plugins', recording_plugin_path])
-        
-        '''
-        # Restart the simulation with updated arguments
-        if self._ambf_process.state() == QProcess.Running:
-            self._ambf_process.terminate()
-            self._ambf_process.waitForFinished(5000)
-            self._ambf_process.start(str(self.gui_configuration.ambf_executable.get()), self._current_args)
-        '''
 
     def _simulation_closed(self):
         self.button_start_simulation.setText('Start Simulation')
@@ -301,7 +261,6 @@ class Ui(QtWidgets.QWidget):
                 return -1
             self.record_options = self.get_record_options()
             self.study_manager.start_recording(self.record_options)
-            self.add_recording_plugin()
             self._recording_study = True
             self.button_record_study.setText("STOP RECORDING")
             self.button_record_study.setStyleSheet("background-color: RED")
