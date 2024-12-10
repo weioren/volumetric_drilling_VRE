@@ -53,17 +53,9 @@ class StudyManager:
 
     def start_recording(self, record_options):
         os.makedirs(record_options.path)
-        window_handle = self._get_ambf_main_window_handle()
+
         if record_options.pupil_data:
-            # self.send_xdotool_keycmd(self._get_ambf_main_window_handle(), 'ctrl+g')
-            self.send_xdotool_keycmd(window_handle, 'ctrl+g')
-            # os.system(f'xdotool type --window {window_handle} "{record_options.path}"') # for video recording script
-            # Set the environment variable for the recording path
-            temp_path = "./Simulator_Recordings/tmp/recording_path.txt"
-            with open(temp_path, "w") as temp_file:
-                temp_file.write(record_options.path)
-            print(f"Recording path written to: {temp_path}")
-            print(f"Set RECORDING_PATH to: {record_options.path}")
+            self.send_xdotool_keycmd(self._get_ambf_main_window_handle(), 'ctrl+g')
             self.pupil_manager.start_recording(record_options.path)
 
         if record_options.simulator_data:
@@ -87,8 +79,6 @@ class StudyManager:
             self.pupil_service_handle = None
 
     def stop_recording(self):
-        window_handle = self._get_ambf_main_window_handle()
-        self.send_xdotool_keycmd(window_handle, 'ctrl+y') # command to stop video recording
         self.pupil_manager.stop_recoding()
         self.close_recording_script()
 
