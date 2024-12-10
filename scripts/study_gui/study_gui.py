@@ -176,8 +176,8 @@ class Ui(QtWidgets.QWidget):
             self._current_args = args
             if self.button_video_record.isChecked(): # for video recording pluginF
                 # if self.is_ready_to_record(): # can't check if ready to record because simulator can't be running yet
-                self.add_recording_plugin()
-            self._current_args = [item for arg in self._current_args for item in arg.split(',')]
+                self.add_plugin('/home/amunawa2/ambf_video_recording/build/libsimulator_video_recording.so')
+            self._current_args = self.process_arg_list(self._current_args)
             print("--fp", str(self.gui_configuration.footpedal_device.get()))
             print(f"Starting simulation with arguments: {self._current_args}")
             # self.study_manager.start_simulation(args)
@@ -187,6 +187,22 @@ class Ui(QtWidgets.QWidget):
         else:
             self._ambf_process.close()
 
+    def process_arg_list(self, input_list):
+        processed_list = []
+        
+        for item in input_list:
+            # Check if the item contains a comma
+            if ',' in item:
+                # Split the item by the first comma and add a comma to the start of the second element
+                part1, part2 = item.split(',', 1)
+                processed_list.append(part1)
+                processed_list.append(',' + part2)  # Keep the comma in the second part
+            else:
+                # If no comma, just add the item as is
+                processed_list.append(item)
+        
+        return processed_list
+
     def update_arguments(self, new_args):
         """Update the current arguments for the process."""
         for key, value in new_args.items():
@@ -195,15 +211,14 @@ class Ui(QtWidgets.QWidget):
             if value is not None:
                 self._current_args.append(value)
 
-    def add_recording_plugin(self):
-        recording_plugin_path = '/home/amunawa2/ambf_video_recording/build/libsimulator_video_recording.so'
+    def add_plugin(self, plugin_path):
         if '--plugins' in self._current_args:
             plugin_index = self._current_args.index('--plugins')
             current_plugins = self._current_args[plugin_index + 1]
-            if recording_plugin_path not in current_plugins:
-                self._current_args[plugin_index + 1] += f",{recording_plugin_path}"
+            if plugin_path not in current_plugins:
+                self._current_args[plugin_index + 1] += f",{plugin_path}"
         else:
-            self._current_args.extend(['--plugins', recording_plugin_path])
+            self._current_args.extend(['--plugins', plugin_path])
         
         '''
         # Restart the simulation with updated arguments
@@ -260,7 +275,7 @@ class Ui(QtWidgets.QWidget):
         record_options = RecordOptions()
         base_path = str(self.gui_configuration.recording_base_path.get())
         participant_name = '/' + self.text_participant_name.toPlainText().strip()
-        date_time = '/' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date_time = '/' + datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
         record_options.path = base_path + participant_name + date_time
         record_options.simulator_data = True
 
@@ -301,7 +316,6 @@ class Ui(QtWidgets.QWidget):
                 return -1
             self.record_options = self.get_record_options()
             self.study_manager.start_recording(self.record_options)
-            self.add_recording_plugin()
             self._recording_study = True
             self.button_record_study.setText("STOP RECORDING")
             self.button_record_study.setStyleSheet("background-color: RED")
