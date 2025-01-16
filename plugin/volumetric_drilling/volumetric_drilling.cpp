@@ -198,7 +198,6 @@ int afVolmetricDrillingPlugin::init(int argc, char **argv, const afWorldPtr a_af
     }
 
     m_gazeMarkerController.init(m_worldPtr, &m_panelManager, var_map);
-    // m_videoRecordingController.init(m_worldPtr);
     return 1;
 }
 
@@ -227,7 +226,7 @@ void afVolmetricDrillingPlugin::graphicsUpdate(){
     updateButtons();
     m_panelManager.update();
     if (m_isRecording) {
-        m_videoRecordingController.update();
+        m_videoRecordingController.update(m_worldPtr->getCurrentTimeStamp());
     }
 }
 
@@ -572,7 +571,7 @@ void afVolmetricDrillingPlugin::keyboardUpdate(GLFWwindow *a_window, int a_key, 
                 }
                 m_videoRecordingController.init(m_worldPtr, recordingPath);
                 // Set the save directory and proceed with video recording logic
-                m_videoRecordingController.start_recording();
+                m_videoRecordingController.start_recording(m_worldPtr->getCurrentTimeStamp());
                 // Visual or log confirmation for the user
                 cout << "Video recording started at: " << recordingPath << endl;
             }

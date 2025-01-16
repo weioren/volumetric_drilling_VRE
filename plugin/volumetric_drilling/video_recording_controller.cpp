@@ -3,8 +3,9 @@
 Script Name: Video Recording Controller
 Author: Jonathan Wang
 Date Created: 2024-12-03
-Last Modified: 2024-12-03
-Version: 1.0
+Last Modified: 2025-01-15
+Version: 1.1
+Updates: generate world_timestamps.npy
 
 Description:
     This script helps control the recording of the simulator 'world' view upon clicking
@@ -24,6 +25,7 @@ Usage:
 #include <sstream>
 #include <iomanip>
 #include <ctime>
+#include <cnpy.h>
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -85,17 +87,15 @@ int VideoRecordingController::init(const afWorldPtr a_afWorld, const string& sta
     m_image = cImage::create();
 
     // Set the directory to save recordings
-    m_saveDirectory = createNewDirectory("Simulator_Recordings", startingDir);
+    // m_saveDirectory = createNewDirectory("Simulator_Recordings", startingDir);
+    m_saveDirectory = startingDir; // save inside the pupil data folder of 000
     cerr << "Recording save directory: " << m_saveDirectory << endl;
 
     cerr << "INFO! Variables initialized successfully.\n";
     return 1;
 }
 
-int VideoRecordingController::start_recording() {
-    // Set the directory to save recordings
-    // m_saveDirectory = createNewDirectory("Simulator_Recordings", startingDir);
-    // cout << "Recording save directory: " << m_saveDirectory << endl;
+int VideoRecordingController::start_recording(const double world_timestamp) {
     if (!m_camera || m_saveDirectory.empty()) {
         cerr << "ERROR! Camera or save directory is not initialized. Call init first.\n";
         return -1;
@@ -104,8 +104,66 @@ int VideoRecordingController::start_recording() {
     // Generate video file path
     time_t now = time(0);
     string size_str = to_string(m_width) + "x" + to_string(m_height);
-    m_video_filename = m_saveDirectory + "/" + m_camera->getName() + "_" + to_string(int(m_worldPtr->getSystemTime())) + ".mp4";
+    m_video_filename = m_saveDirectory + "/" + "world.mp4";
+    string timestamps_filename = m_saveDirectory + "/" + "world_timestamps.npy";
 
+    // FFmpeg settings
+    string cmd = "ffmpeg";
+    cmd += " -r 60";
+    cmd += " -f rawvideo";
+    cmd += " -pix_fmt rgba";
+    cmd += " -s " + size_str;
+    cmd += " -i -";
+    cmd += " -threads 0";
+    cmd += " -preset fast";
+    cmd += " -y";
+    cmd += " -pix_fmt yuv420p";
+    cmd += " -crf 21"; // Major parameter to tweak video compression and output size
+    cmd += " -vf vflip";
+    cmd += " " + m_video_filename;
+
+    // Start FFmpeg process for recording video
+    try {
+        m_ffmpeg = popen(cmd.c_str(), "w");
+        cerr << "INFO! Recording started: " << m_video_filename << "\n";
+    } catch (exception& e) {
+        cerr << "ERROR! Failed to start recording: " << e.what() << "\n";
+        return -1;
+    }
+
+    // Prepare timestamp storage
+    m_recorded_timestamps.clear();
+    m_recorded_timestamps.push_back(world_timestamp); // Record the first timestamp
+    return 1;
+}
+
+void VideoRecordingController::save_timestamps_to_npy(const string& filename, const vector<double>& timestamps) {
+    try {
+        // Convert the vector to a raw pointer for saving
+        const double* data_ptr = timestamps.data();
+        size_t size = timestamps.size();
+
+        // Save the data using cnpy
+        cnpy::npy_save(filename, data_ptr, {size}, "w");
+
+        cerr << "INFO! Timestamps saved to: " << filename << "\n";
+    } catch (const std::exception& e) {
+        throw runtime_error("Failed to save timestamps to .npy file: " + string(e.what()));
+    }
+}
+
+/***
+int VideoRecordingController::start_recording() {
+    if (!m_camera || m_saveDirectory.empty()) {
+        cerr << "ERROR! Camera or save directory is not initialized. Call init first.\n";
+        return -1;
+    }
+
+    // Generate video file path
+    time_t now = time(0);
+    string size_str = to_string(m_width) + "x" + to_string(m_height);
+    // m_video_filename = m_saveDirectory + "/" + m_camera->getName() + "_" + to_string(int(m_worldPtr->getSystemTime())) + ".mp4";
+    m_video_filename = m_saveDirectory + "/" + "world.mp4";
     // ffmpeg settings
     string cmd = "ffmpeg";
     cmd += " -r 60";
@@ -131,58 +189,7 @@ int VideoRecordingController::start_recording() {
 
     return 1;
 }
-/*
-int afSimulatorVideoRecorderPlugin::init(int argc, char **argv, const afWorldPtr a_afWorld, const string& startingDir)
-{
-    m_worldPtr = a_afWorld;
-
-    m_camera = m_worldPtr->getCameras()[0];
-
-    // We can specify the video resolution or copy it from current camera.
-    m_width = m_camera->m_width;
-    m_height = m_camera->m_height;
-    // m_width = 640;
-    // m_height = 480;
-
-    m_frameBuffer = cFrameBuffer::create();
-    m_frameBuffer->setup(m_camera->getInternalCamera(), m_width, m_height, true, true);
-
-    m_image = cImage::create();
-
-    // Create a new directory to save the video under Simulator_Recordings
-    string saveDirectory = createNewDirectory("Simulator_Recordings", startingDir);
-
-    // ffmpeg settings, these can be changed to balance speed, size and quality
-    time_t now = time(0);
-    char* dt = ctime(&now);
-    string size_str = to_string(m_width) + "x" + to_string(m_height);
-    m_video_filename = saveDirectory + "/" + m_camera->getName() + "_" + to_string(int(m_worldPtr->getSystemTime())) + ".mp4";
-    string cmd = "ffmpeg";
-    cmd += " -r 60";
-    cmd += " -f rawvideo";
-    cmd += " -pix_fmt rgba";
-    cmd += " -s " + size_str;
-    cmd += " -i -";
-    cmd += " -threads 0";
-    cmd += " -preset fast";
-    cmd += " -y";
-    cmd += " -pix_fmt yuv420p";
-    cmd += " -crf 21"; // Major parameter to tweak video compression and output size
-    cmd += " -vf vflip";
-    cmd += " " + m_video_filename;
-
-    try{
-        m_ffmpeg = popen(cmd.c_str(), "w");
-        cerr << "INFO! SUCCESSFULLY LOADED VIDEO WRITER PLUGIN \n" << endl;
-    }
-    catch (exception e){
-        cerr << e.what() << endl;
-        return -1;
-    }
-
-    return 1;
-}
-*/
+***/
 
 void VideoRecordingController::keyboardUpdate(GLFWwindow *a_window, int a_key, int a_scancode, int a_action, int a_mods)
 {
@@ -201,21 +208,31 @@ void VideoRecordingController::mouseScrollUpdate(GLFWwindow *a_window, double x_
 
 }
 
-void VideoRecordingController::update()
+void VideoRecordingController::update(const double current_timestamp)
 {
-    try{
+    try {
         m_frameBuffer->renderView();
         m_frameBuffer->copyImageBuffer(m_image);
-        fwrite(m_image->getData(), m_image->getBytesPerPixel() * m_width * m_height, 1, m_ffmpeg);
-    }
-    catch (exception e){
-        cerr << e.what() << endl;
-    }
 
-    static bool save_first_frame_img = true;
-    if(save_first_frame_img){
-        m_image->saveToFile(m_camera->getName() + ".png");
-        save_first_frame_img = false;
+        // Write the frame data to FFmpeg
+        if (m_ffmpeg) {
+            fwrite(m_image->getData(), m_image->getBytesPerPixel() * m_width * m_height, 1, m_ffmpeg);
+            m_recorded_timestamps.push_back(current_timestamp); // Record the timestamp
+        } else {
+            cerr << "ERROR! FFmpeg process not initialized. Call start_recording first.\n";
+            return;
+        }
+
+        // Save the first frame as an image (only once)
+        static bool save_first_frame_img = true;
+        if (save_first_frame_img) {
+            string first_frame_filename = m_camera->getName() + ".png";
+            m_image->saveToFile(first_frame_filename);
+            cerr << "INFO! First frame saved to: " << first_frame_filename << "\n";
+            save_first_frame_img = false;
+        }
+    } catch (const exception& e) {
+        cerr << "ERROR! Exception in update: " << e.what() << "\n";
     }
 }
 
@@ -233,7 +250,18 @@ bool VideoRecordingController::close()
 {
     if (m_ffmpeg){
         pclose(m_ffmpeg);
-        cerr << "INFO! CLOSING FFMPEG FILE \n";
+        m_ffmpeg = nullptr;
+        m_timestamps_filename = m_saveDirectory + "/" + "world_timestamps.npy";
+        // Save timestamps to file
+        try {
+            save_timestamps_to_npy(m_timestamps_filename, m_recorded_timestamps);
+            cerr << "INFO! Timestamps saved to: " << m_timestamps_filename << "\n";
+        } catch (const exception& e) {
+            cerr << "ERROR! Failed to save timestamps: " << e.what() << "\n";
+            return false;
+        }
+
+        cerr << "INFO! Recording completed and resources released.\n";
     }
     return true;
 }

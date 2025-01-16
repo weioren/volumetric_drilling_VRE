@@ -38,32 +38,31 @@ namespace p_opt = boost::program_options;
 class VideoRecordingController: public afSimulatorPlugin{
 public:
     VideoRecordingController();
-    // virtual int init(int argc, char** argv, const afWorldPtr a_afWorld) override;
-    // virtual int init(afWorldPtr a_afWorld, const string& startingDir);
     int init(afWorldPtr a_afWorld, const string& startingDir);
-    int start_recording();
+    int start_recording(const double world_timestamp);
+    void save_timestamps_to_npy(const string& filename, const vector<double>& timestamps);
     virtual void keyboardUpdate(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, int a_mods) override;
     virtual void mouseBtnsUpdate(GLFWwindow* a_window, int a_button, int a_action, int a_modes) override;
     virtual void mousePosUpdate(GLFWwindow* a_window, double x_pos, double y_pos) override;
     virtual void mouseScrollUpdate(GLFWwindow* a_window, double x_pos, double y_pos) override;
-    void update();
+    void update(double current_timestamp);
     virtual void physicsUpdate(double dt) override;
     virtual void reset() override;
     bool close();
 
 
 protected:
-    afCameraPtr m_camera;               // Pointer to the camera
-    cFrameBufferPtr m_frameBuffer;      // Frame buffer for the video
-    int m_width;                        // Width of the video
-    int m_height;                       // Height of the video
-    FILE* m_ffmpeg;                     // File pointer for ffmpeg
-    int* m_buffer;                      // Buffer for the video frames
-    cImagePtr m_image;                  // Image pointer for storing video frames
-    string m_video_filename;            // Video filename to save the recording
-    string m_saveDirectory;             // Directory to save the video
+    afCameraPtr m_camera;                 // Pointer to the camera
+    cFrameBufferPtr m_frameBuffer;        // Frame buffer for the video
+    int m_width;                          // Width of the video
+    int m_height;                         // Height of the video
+    FILE* m_ffmpeg;                       // File pointer for ffmpeg
+    int* m_buffer;                        // Buffer for the video frames
+    cImagePtr m_image;                    // Image pointer for storing video frames
+    string m_video_filename;              // Video filename to save the recording
+    string m_saveDirectory;               // Directory to save the video
+    string m_timestamps_filename;         // Filename for world timestamps.npy file
+    vector<double> m_recorded_timestamps; // Recorded time stamps
 };
 
 #endif
-
-// AF_REGISTER_SIMULATOR_PLUGIN(afSimulatorVideoRecorderPlugin)
