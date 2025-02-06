@@ -75,6 +75,11 @@ int GazeMarkerController::init(afWorldPtr a_worldPtr, CameraPanelManager* a_pane
     m_gridCenter = 0.0;
     m_cornerOffset = 0.05;
 
+    // Reduce size of 3x3 calibration grid
+    double scaleFactor = 0.9;
+    m_gridWidth  *= scaleFactor;
+    m_gridHeight *= scaleFactor;
+    m_cornerOffset *= scaleFactor;
 
     m_P_m_c_list = {
         cVector3d(-5.,  m_gridCenter, m_gridCenter),
