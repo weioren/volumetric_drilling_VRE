@@ -40,7 +40,7 @@
 cmake_minimum_required (VERSION 3.1)
 project (volumetric_plugin)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 find_package(AMBF)
 find_package(Boost COMPONENTS program_options filesystem)
@@ -52,10 +52,12 @@ include_directories(${AMBF_INCLUDE_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${catkin_INCLUDE_DIRS})
 
+include_directories("plugin/volumetric_drilling/cnpy")
+link_directories("plugin/volumetric_drilling/cnpy/build")
+
 link_directories(${AMBF_LIBRARY_DIRS})
 
 add_definitions(${AMBF_DEFINITIONS})
-
 
 message("---> LIBS " ${catkin_INCLUDE_DIRS})
 message("---> FOUND ? " ${catkin_vdrilling_msgs_FOUND})
@@ -79,7 +81,9 @@ add_library(volumetric_drilling SHARED
     ${vol_plugin_prefix}/camera_panel_manager.h
     ${vol_plugin_prefix}/camera_panel_manager.cpp
     ${vol_plugin_prefix}/gaze_marker_controller.h
-  ${vol_plugin_prefix}/gaze_marker_controller.cpp)
+    ${vol_plugin_prefix}/gaze_marker_controller.cpp
+    ${vol_plugin_prefix}/video_recording_controller.h
+    ${vol_plugin_prefix}/video_recording_controller.cpp)
 add_dependencies(volumetric_drilling ${catkin_EXPORTED_TARGETS})
 target_link_libraries (volumetric_drilling ${Boost_LIBRARIES} ${AMBF_LIBRARIES} ${catkin_LIBRARIES})
 set_property(TARGET volumetric_drilling PROPERTY POSITION_INDEPENDENT_CODE TRUE)
@@ -87,3 +91,13 @@ set_property(TARGET volumetric_drilling PROPERTY POSITION_INDEPENDENT_CODE TRUE)
 add_library(camera_hmd plugin/camera_hmd/hmd.cpp plugin/camera_hmd/hmd.h)
 target_link_libraries(camera_hmd ${AMBF_LIBRARIES})
 set_property(TARGET camera_hmd PROPERTY POSITION_INDEPENDENT_CODE TRUE)
+
+# Find cnpy library
+find_library(CNPY_LIB cnpy HINTS "plugin/volumetric_drilling/cnpy/build")
+target_link_libraries(volumetric_drilling ${CNPY_LIB} ${ZLIB_LIBRARIES})
+
+# Add cnpy library
+# include_directories("build/cnpy")
+# find_library(CNPY_LIB cnpy "build/cnpy")
+# find_package(ZLIB REQUIRED)
+# target_link_libraries(volumetric_drilling ${CNPY_LIB} ${ZLIB})
